@@ -48,7 +48,7 @@ names(bird)
 
 ```{r}
 bird_new<-bird%>%
-  select(bl_family_english,scientific,english,diet_inv,diet_vend,diet_vect,diet_vfish,diet_vunk,diet_scav,diet_fruit,diet_nect,diet_seed,diet_plant_o,diet_5cat,for_strat_watbelowsurf,for_strat_wataroundsurf,for_strat_ground,for_strat_understory,for_strat_midhigh,for_strat_canopy,for_strat_aerial,nocturnal,body_mass_value)
+  select(ioc_order,bl_family_english,scientific,english,diet_inv,diet_vend,diet_vect,diet_vfish,diet_vunk,diet_scav,diet_fruit,diet_nect,diet_seed,diet_plant_o,diet_5cat,for_strat_watbelowsurf,for_strat_wataroundsurf,for_strat_ground,for_strat_understory,for_strat_midhigh,for_strat_canopy,for_strat_aerial,nocturnal,body_mass_value)
 bird_new
 ```
 ```{r}
