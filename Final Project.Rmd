@@ -20,13 +20,18 @@ library(here)
 library(readr)
 library(tidyverse)
 library(janitor)
+library(shiny)
+library(shinydashboard)
 ```
 
 ```{r}
 getwd()
 ```
+
+
+
 ```{r}
-bird<-BirdFuncDat
+bird<-read_csv(here("BirdFuncDat.csv"))
 ```
 
 ```{r}
@@ -55,12 +60,78 @@ bird_new
 glimpse(bird_new)
 ```
 
+```{r}
+anyNA(bird_new)
+```
+
+
+```{r}
+write.csv(bird_new, file = "bird_tidy.csv", row.names = FALSE)
+```
+
 ## Including Plots
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+options(scipen=999)
 ```
+
+```{r pressure, echo=FALSE}
+bird_new%>%
+  select(ioc_order,body_mass_value)%>%
+  ggplot(aes(x=ioc_order,y=body_mass_value,color=ioc_order))+
+  geom_col()+
+  facet_wrap(~ioc_order)+
+  theme(axis.title.x = element_text(size = rel(1)))
+```
+```{r}
+bird_new%>%
+  count(ioc_order)
+```
+
+
+
+```{r}
+ui <- dashboardPage(
+  dashboardHeader(title = "Bird"),
+  dashboardSidebar(disable = T),
+  dashboardBody(
+    fluidRow(
+      box(width = 3,
+    selectInput("x","select x variable",
+                choices = c("Accipitriformes","Anseriformes","Apodiformes","Apterygiformes","Bucerotiformes","Caprimulgiformes","Cariamiformes","Casuariiformes","Charadriiformes","Ciconiiformes","Coliiformes","Columbiformes","Coraciiformes","Cuculiformes","Eurypygiformes","Falconiformes","Galliformes","Gaviiformes","Gruiformes","Leptosomiformes","Mesitornithiformes","Musophagiformes","Opisthocomiformes","Otidiformes","Passeriformes","Pelecaniformes","Phaethontiformes","Phoenicopteriformes","Piciformes","Podicipediformes","Procellariiformes","Psittaciformes","Pteroclidiformes","Rheiformes","Sphenisciformes","Strigiformes","Struthioniformes","Suliformes","Tinamiformes","Trogoniformes"),
+                selected = "Accipitriformes"),
+    ),
+    box(title="Body Mass of Bird among Biological Orders",width = 7,
+    plotOutput("plot",width = "600px",height = "500px")
+    )
+  )
+  )
+)
+
+server <- function(input, output,session) {
+  output$plot<-renderPlot({
+    bird_new %>% 
+    filter(ioc_order==input$x)%>%
+  ggplot(aes_string(x="ioc_order",y="body_mass_value",fill="ioc_order"))+
+  geom_boxplot(alpha=0.8)+
+  theme_linedraw()+
+  theme(axis.title.x = element_text(size = rel(1.5)))+
+      labs(x="Order",y="Body Mass")
+  })
+  session$onSessionEnded(stopApp)
+}
+
+shinyApp(ui, server)
+```
+
+
+
+
+
+
+
+
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
