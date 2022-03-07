@@ -1,11 +1,5 @@
----
-output: 
-  html_document: 
-    keep_md: yes
----
 
-
-#Welcome!
+##Welcome!
 
 *Bird* is an app that let you visualize data from
 [BirdFunDat](https://esajournals.onlinelibrary.wiley.com/doi/epdf/10.1002/ecs2.1351)
