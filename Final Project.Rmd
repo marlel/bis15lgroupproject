@@ -69,6 +69,11 @@ anyNA(bird_new)
 write.csv(bird_new, file = "bird_tidy.csv", row.names = FALSE)
 ```
 
+```{r}
+bird_new<-read_csv(here("bird_tidy.csv"))
+```
+
+
 ## Including Plots
 
 You can also embed plots, for example:
@@ -89,6 +94,114 @@ bird_new%>%
 bird_new%>%
   count(ioc_order)
 ```
+```{r}
+bird_new%>%
+  filter(ioc_order=="Accipitriformes")%>%
+  select(ioc_order,body_mass_value)%>%
+  summarise(avg_aci=mean(body_mass_value))
+```
+```{r}
+avg_bodymass<-bird_new%>%
+  group_by(ioc_order)%>%
+  select(ioc_order,body_mass_value)%>%
+  summarize_each(funs(mean_bodymass=mean(.,na.rm=T)))%>%
+  na.exclude()%>%
+  arrange(desc(mean_bodymass))
+avg_bodymass
+```
+```{r}
+#install.packages("shinythemes")
+```
+```{r}
+library(shinythemes)
+```
+
+```{r}
+?validStatuses
+```
+
+```{r}
+getwd()
+```
+
+
+
+```{r}
+ui <- dashboardPage(skin = "black",
+  dashboardHeader(title = "Bird"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Home", tabName = "home", icon = icon("home")),
+      menuItem("Body Mass", tabName = "bodymass", icon = icon("tree")),
+      menuItem("Average Body Mass", tabName = "avg", icon = icon("leaf"))
+    )),
+  dashboardBody(
+    tags$head(tags$style(HTML('
+      .main-header .logo {
+        font-family: "Georgia", Times, "Times New Roman", serif;
+        font-weight: bold;
+        font-size: 24px;
+      }
+    '))),
+    #home tab
+    tabItems(
+      tabItem(tabName = "home",
+              includeMarkdown("home.md"))
+    ),
+    
+    tabItems(
+      # First tab content
+      tabItem(tabName = "bodymass",
+        fluidRow(
+          box(width=4,
+    selectInput("x","select Biological Order",
+                choices = c("Accipitriformes","Anseriformes","Apodiformes","Apterygiformes","Bucerotiformes","Caprimulgiformes","Cariamiformes","Casuariiformes","Charadriiformes","Ciconiiformes","Coliiformes","Columbiformes","Coraciiformes","Cuculiformes","Eurypygiformes","Falconiformes","Galliformes","Gaviiformes","Gruiformes","Leptosomiformes","Mesitornithiformes","Musophagiformes","Opisthocomiformes","Otidiformes","Passeriformes","Pelecaniformes","Phaethontiformes","Phoenicopteriformes","Piciformes","Podicipediformes","Procellariiformes","Psittaciformes","Pteroclidiformes","Rheiformes","Sphenisciformes","Strigiformes","Struthioniformes","Suliformes","Tinamiformes","Trogoniformes"),
+                selected = "Accipitriformes")),
+          box(title="Body Mass of Bird among Biological Orders",width=8,
+    plotOutput("plot",width = "600px",height = "500px"),
+
+          
+        )
+      )),
+
+      # Second tab content
+      tabItem(tabName = "avg",
+        fluidRow(
+          box(plotOutput("plot1"),width = 12,height = NULL),
+        )
+      )
+    )
+  ))
+
+
+server <- function(input, output,session) {
+  output$plot<-renderPlot({
+    bird_new %>% 
+    filter(ioc_order==input$x)%>%
+  ggplot(aes_string(x="ioc_order",y="body_mass_value",fill="ioc_order"))+
+  geom_boxplot(alpha=0.8)+
+  theme_linedraw()+
+  theme(axis.title.x = element_text(size = rel(1.5)))+
+      labs(x="Biological Order",y="Body Mass",
+           title = "Observations of Body Mass by Biological Order")
+  })
+  output$plot1<-renderPlot({
+    avg_bodymass%>%
+      ggplot(aes_string(x="ioc_order",y="mean_bodymass",fill="ioc_order"))+
+      geom_col()+
+      scale_y_log10()+
+      coord_flip()+
+      theme_linedraw()+
+      labs(title = "Observations of Average Body Mass by Biological Order",
+           x="Biological Order",
+           y="Average Body Mass")
+  })
+  session$onSessionEnded(stopApp)
+}
+
+shinyApp(ui, server)
+```
+
 
 
 
@@ -127,6 +240,216 @@ shinyApp(ui, server)
 ```
 
 
+#histo
+```{r}
+ui <- dashboardPage(
+  dashboardHeader(title = "Bird"),
+  dashboardSidebar(disable = T),
+  dashboardBody(
+    fluidRow(
+      box(width = 3,
+    selectInput("x","select x variable",
+                choices = c("Accipitriformes","Anseriformes","Apodiformes","Apterygiformes","Bucerotiformes","Caprimulgiformes","Cariamiformes","Casuariiformes","Charadriiformes","Ciconiiformes","Coliiformes","Columbiformes","Coraciiformes","Cuculiformes","Eurypygiformes","Falconiformes","Galliformes","Gaviiformes","Gruiformes","Leptosomiformes","Mesitornithiformes","Musophagiformes","Opisthocomiformes","Otidiformes","Passeriformes","Pelecaniformes","Phaethontiformes","Phoenicopteriformes","Piciformes","Podicipediformes","Procellariiformes","Psittaciformes","Pteroclidiformes","Rheiformes","Sphenisciformes","Strigiformes","Struthioniformes","Suliformes","Tinamiformes","Trogoniformes"),
+                selected = "Accipitriformes"),
+    ),
+    box(title="Body Mass of Bird among Biological Orders",width = 7,
+    plotOutput("plot",width = "600px",height = "500px")
+    )
+  )
+  )
+)
+
+server <- function(input, output,session) {
+  output$plot<-renderPlot({
+    bird_new %>% 
+    filter(ioc_order==input$x)%>%
+  ggplot(aes_string(x="ioc_order",fill="ioc_order"))+
+  geom_histogram(alpha=0.8)+
+  theme_linedraw()+
+  theme(axis.title.x = element_text(size = rel(1.5)))+
+      labs(x="Order",y="Body Mass")
+  })
+  session$onSessionEnded(stopApp)
+}
+```
+
+
+#checkboxplot
+```{r}
+ui <- fluidPage(
+  selectInput("x","select x variable",
+                choices = c("Accipitriformes","Anseriformes","Apodiformes","Apterygiformes","Bucerotiformes","Caprimulgiformes","Cariamiformes","Casuariiformes","Charadriiformes","Ciconiiformes","Coliiformes","Columbiformes","Coraciiformes","Cuculiformes","Eurypygiformes","Falconiformes","Galliformes","Gaviiformes","Gruiformes","Leptosomiformes","Mesitornithiformes","Musophagiformes","Opisthocomiformes","Otidiformes","Passeriformes","Pelecaniformes","Phaethontiformes","Phoenicopteriformes","Piciformes","Podicipediformes","Procellariiformes","Psittaciformes","Pteroclidiformes","Rheiformes","Sphenisciformes","Strigiformes","Struthioniformes","Suliformes","Tinamiformes","Trogoniformes"),
+                selected = "Accipitriformes"),
+  plotOutput("plot",width = "600px",height = "500px"),
+        checkboxGroupInput("icons",label = h3("choose icons:"),
+                           choices=list("diet"="diet_5cat","nocturnal"="nocturnal"),
+                           choiceValues = list("diet_5cat","nocturnal")),
+    
+    textOutput("txt")
+    
+)
+
+server <- function(input, output, session) {
+  output$plot<-renderPlot({
+  ggplot(data=bird_new,aes_string(x="ioc_order",y="body_mass_value",color="ioc_order"))+
+  geom_boxplot(alpha=0.8)+
+  theme_linedraw()+
+  theme(axis.title.x = element_text(size = rel(1.5)))+
+      labs(x="Order",y="Body Mass")
+  })
+  output$txt<-renderText({
+    icons<-paste(input$icons,collapse=",")
+    paste("You Choose",paste(input$diet,input$nocturnal))
+  })
+  session$onSessionEnded(stopApp)
+}
+
+shinyApp(ui, server)
+```
+```{r}
+bird_new%>%
+  count(diet_5cat)%>%
+  na.exclude()
+```
+
+```{r}
+bird_new%>%
+  na.exclude()%>%
+  rename(diet_type=diet_5cat)%>%
+  ggplot(aes(x=diet_type,fill=diet_type))+
+  geom_bar()+
+  coord_flip()+
+  labs(x="Diet Type",y=NULL,title = "Observations by Diet Type")+
+  theme_linedraw()+
+  theme(axis.title = element_text(size = 10),plot.title = element_text(size=15,face = "bold") )
+```
+
+
+```{r}
+names(bird_new)
+```
+
+
+```{r}
+diet_bodymass<-bird_new%>%
+  select(contains("diet"),body_mass_value)%>%
+  select(-diet_5cat)
+```
+
+```{r}
+write.csv(diet_bodymass, file = "diet_bodymass.csv", row.names = FALSE)
+```
+
+```{r}
+diet_long<-diet_bodymass%>%
+  pivot_longer(
+               cols = starts_with("diet"),
+               names_to = ("diet_type"),
+               names_prefix = "diet_",
+               values_to = "population",
+               values_drop_na = TRUE)
+```
+
+
+
+```{r}
+diet_long%>%
+  ggplot(aes(x=population,y=body_mass_value,fill=diet_type))+
+  geom_col()+
+  facet_wrap(~diet_type,ncol = 4)+
+  theme_linedraw()+
+  labs(x="Population",y="Body Mass",title = "Observations by Body Mass and Diet Type ")+
+  theme(plot.title = element_text(size = 15,face="bold"))
+```
+
+the reason for that is maybe each order of bird only have a few diet,they don't eat all the things but just some particular types. so that many zeros exist for each diet type. Maybe relate to their living environment and available sources for them
+```{r}
+bird_new%>%
+  rename(Diet_Type=diet_5cat)
+```
+
+
+```{r}
+bird_new%>%
+  na.exclude()%>%
+  rename(Diet_Type=diet_5cat)%>%
+  ggplot(aes(x=ioc_order,y=body_mass_value,fill=Diet_Type))+
+  geom_col()+
+  coord_flip()+
+  theme_linedraw()+
+  labs(x="Biological Order",y="Body Mass",title="Distributions of Diet Types among Biological Orders")+
+  theme(plot.title = element_text(size = 15,face = "bold"))
+```
+
+```{r}
+bird_new%>%
+  select(body_mass_value,diet_5cat)%>%
+  arrange(desc(body_mass_value))%>%
+  ggplot(aes(x=diet_5cat,y=body_mass_value))+
+  geom_point()
+```
+
+```{r}
+bird_strat<-bird_new%>%
+  select(contains("for_strat"),body_mass_value)%>%
+  pivot_longer(cols = starts_with("for_strat_"),
+               names_to = ("migration_strategy"),
+               names_prefix = "for_start_",
+               values_to = "population",
+               values_drop_na = TRUE)
+bird_strat
+```
+
+```{r}
+bird_strat%>%
+  count(migration_strategy)
+```
+
+
+
+```{r}
+bird_strat%>%
+  ggplot(aes(x=migration_strategy,fill=migration_strategy))+
+  geom_bar()+
+  coord_flip()
+```
+
+Largest population number is 100,their migrational strategy is very settled. Almost half of them only has one migrational strategy. Surprisingly, very equally distributed. It shows that all the migrational strategies are common among those biological orders.
+
+
+
+
+```{r}
+bird_new%>%
+  select(contains("for_strat"),body_mass_value)%>%
+  pivot_longer(cols = starts_with("for_strat_"),
+               names_to = ("migration_strategy"),
+               names_prefix = "for_start_",
+               values_to = "population",
+               values_drop_na = TRUE)%>%
+  ggplot(aes(x=body_mass_value,y=population,fill=migration_strategy))+
+  geom_boxplot(alpha=0.3)+
+  geom_violin(alpha=0.6)+
+  coord_flip()+
+  labs(x="Body Mass",y="Population")
+```
+
+```{r}
+bird_new%>%
+  count(nocturnal)
+```
+
+
+
+```{r}
+bird_new %>%
+  na.exclude()%>%
+  filter(nocturnal=="1")%>%
+  ggplot(aes(x=diet_5cat, y=ioc_order, fill= nocturnal)) + 
+  geom_tile() +
+  scale_fill_gradient(low="yellow", high="red")+
+  theme_linedraw()
+```
 
 
 
