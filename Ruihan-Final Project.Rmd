@@ -1,8 +1,10 @@
 ---
 title: "Final"
-author: "Ruihan Yuan, Marle Lamountry"
+author: "Ruihan Yuan"
 date: "2/11/2022"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -15,6 +17,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
+#libraries that will be used
 ```{r cars}
 library(here)
 library(readr)
@@ -24,16 +27,13 @@ library(shiny)
 library(shinydashboard)
 ```
 
-```{r}
-getwd()
-```
-
-
-
+#load the data set
 ```{r}
 bird<-read_csv(here("BirdFuncDat.csv"))
 ```
 
+
+#have an overview for the data set,know how NAs are represented
 ```{r}
 glimpse(bird)
 ```
@@ -42,6 +42,7 @@ glimpse(bird)
 names(bird)
 ```
 
+#clean the names using janitor
 ```{r}
 bird<-clean_names(bird)
 ```
@@ -50,46 +51,54 @@ bird<-clean_names(bird)
 names(bird)
 ```
 
-
+#creat new data set with only useful info and data
 ```{r}
 bird_new<-bird%>%
   select(ioc_order,bl_family_english,scientific,english,diet_inv,diet_vend,diet_vect,diet_vfish,diet_vunk,diet_scav,diet_fruit,diet_nect,diet_seed,diet_plant_o,diet_5cat,for_strat_watbelowsurf,for_strat_wataroundsurf,for_strat_ground,for_strat_understory,for_strat_midhigh,for_strat_canopy,for_strat_aerial,nocturnal,body_mass_value)
 bird_new
 ```
+
+#new data set overview
 ```{r}
 glimpse(bird_new)
 ```
 
+#NAs are represented as NAs in this data
 ```{r}
 anyNA(bird_new)
 ```
 
-
+#export the new data
 ```{r}
 write.csv(bird_new, file = "bird_tidy.csv", row.names = FALSE)
 ```
 
 ```{r}
+write.csv(diet_long,file ="diet_pivot_long.csv",row.names = FALSE)
+```
+
+```{r}
+write.csv(bird_strat,file ="bird_strat.csv",row.names = FALSE)
+```
+
+
+#load the new data
+```{r}
 bird_new<-read_csv(here("bird_tidy.csv"))
 ```
 
 
+
+
 ## Including Plots
 
-You can also embed plots, for example:
 
+#remove scientific notion/symbol
 ```{r}
 options(scipen=999)
 ```
 
-```{r pressure, echo=FALSE}
-bird_new%>%
-  select(ioc_order,body_mass_value)%>%
-  ggplot(aes(x=ioc_order,y=body_mass_value,color=ioc_order))+
-  geom_col()+
-  facet_wrap(~ioc_order)+
-  theme(axis.title.x = element_text(size = rel(1)))
-```
+#start analyzing data
 ```{r}
 bird_new%>%
   count(ioc_order)
@@ -100,6 +109,7 @@ bird_new%>%
   select(ioc_order,body_mass_value)%>%
   summarise(avg_aci=mean(body_mass_value))
 ```
+#average body mass for each order
 ```{r}
 avg_bodymass<-bird_new%>%
   group_by(ioc_order)%>%
@@ -109,31 +119,68 @@ avg_bodymass<-bird_new%>%
   arrange(desc(mean_bodymass))
 avg_bodymass
 ```
+#library for drawing map
 ```{r}
-#install.packages("shinythemes")
+library(ggmap)
+```
+#new package for map
+```{r}
+#install.packages("maps")
+#install.packages("mapdata")
 ```
 ```{r}
-library(shinythemes)
+help(package="maps")
 ```
 
 ```{r}
-?validStatuses
+library(maps)
+library(mapdata)
 ```
 
+#know how the names are represented in the data set
 ```{r}
-getwd()
+world_map<-map_data("world")
+sort(unique(world_map$region))
+```
+
+
+#have an overview for the region map data
+```{r}
+world_map%>%
+  filter(region=="USA"|region=="Canada")
+```
+```{r}
+northern_america1<-map_data("world",region = c("Canada","USA"))
 ```
 
 
 
+#graph for map used in shiny app
+```{r}
+ggplot(northern_america1,aes(x = long,y = lat,group = group,fill = region))+
+  geom_polygon(colour="black")+
+  scale_fill_brewer(palette = "Spectral")+
+  theme_minimal()
+```
+```{r}
+#install.packages("DT")
+library(DT)
+```
+
+
+
+#final app
 ```{r}
 ui <- dashboardPage(skin = "black",
   dashboardHeader(title = "Bird"),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Home", tabName = "home", icon = icon("home")),
+      menuItem("Map",tabName = "map",icon = icon("globe")),
+      menuItem("Table",tabName = "table",icon = icon("table")),
       menuItem("Body Mass", tabName = "bodymass", icon = icon("tree")),
-      menuItem("Average Body Mass", tabName = "avg", icon = icon("leaf"))
+      menuItem("Average Body Mass", tabName = "avg", icon = icon("leaf")),
+      menuItem("Diet",tabName = "diet",icon = icon("stats", lib = "glyphicon"))
     )),
   dashboardBody(
     tags$head(tags$style(HTML('
@@ -143,13 +190,17 @@ ui <- dashboardPage(skin = "black",
         font-size: 24px;
       }
     '))),
-    #home tab
-    tabItems(
-      tabItem(tabName = "home",
-              includeMarkdown("home.md"))
-    ),
     
-    tabItems(
+   
+      tabItems(
+      #home tab
+      tabItem(tabName = "home",
+              includeMarkdown("home.md")),
+      #map
+      tabItem(tabName = "map",
+              plotOutput("region_map")),
+      tabItem(tabName = "table",
+              dataTableOutput("bird_new")),
       # First tab content
       tabItem(tabName = "bodymass",
         fluidRow(
@@ -169,7 +220,14 @@ ui <- dashboardPage(skin = "black",
         fluidRow(
           box(plotOutput("plot1"),width = 12,height = NULL),
         )
-      )
+      ),
+    tabItem(tabName = "diet",
+          fluidRow(
+            column(width=6,
+                   plotOutput("diet_type")),
+            column(width = 6,
+                   plotOutput("diet_order")))
+           )
     )
   ))
 
@@ -196,150 +254,57 @@ server <- function(input, output,session) {
            x="Biological Order",
            y="Average Body Mass")
   })
-  session$onSessionEnded(stopApp)
-}
-
-shinyApp(ui, server)
-```
-
-
-
-
-```{r}
-ui <- dashboardPage(
-  dashboardHeader(title = "Bird"),
-  dashboardSidebar(disable = T),
-  dashboardBody(
-    fluidRow(
-      box(width = 3,
-    selectInput("x","select x variable",
-                choices = c("Accipitriformes","Anseriformes","Apodiformes","Apterygiformes","Bucerotiformes","Caprimulgiformes","Cariamiformes","Casuariiformes","Charadriiformes","Ciconiiformes","Coliiformes","Columbiformes","Coraciiformes","Cuculiformes","Eurypygiformes","Falconiformes","Galliformes","Gaviiformes","Gruiformes","Leptosomiformes","Mesitornithiformes","Musophagiformes","Opisthocomiformes","Otidiformes","Passeriformes","Pelecaniformes","Phaethontiformes","Phoenicopteriformes","Piciformes","Podicipediformes","Procellariiformes","Psittaciformes","Pteroclidiformes","Rheiformes","Sphenisciformes","Strigiformes","Struthioniformes","Suliformes","Tinamiformes","Trogoniformes"),
-                selected = "Accipitriformes"),
-    ),
-    box(title="Body Mass of Bird among Biological Orders",width = 7,
-    plotOutput("plot",width = "600px",height = "500px")
-    )
-  )
-  )
-)
-
-server <- function(input, output,session) {
-  output$plot<-renderPlot({
-    bird_new %>% 
-    filter(ioc_order==input$x)%>%
-  ggplot(aes_string(x="ioc_order",y="body_mass_value",fill="ioc_order"))+
-  geom_boxplot(alpha=0.8)+
+  output$region_map<-renderPlot({
+    ggplot(northern_america1,aes(x = long,y = lat,group = group,fill = region))+
+  geom_polygon(colour="black")+
+  scale_fill_brewer(palette = "Spectral")+
+  theme_minimal()
+  })
+  output$diet_type<-renderPlot({
+    diet_long%>%
+  ggplot(aes(x=population,y=body_mass_value,fill=diet_type))+
+  geom_col()+
+  facet_wrap(~diet_type,ncol = 4)+
   theme_linedraw()+
-  theme(axis.title.x = element_text(size = rel(1.5)))+
-      labs(x="Order",y="Body Mass")
+  labs(x="Population",y="Body Mass",title = "Observations by Body Mass and Diet Type ")+
+  theme(plot.title = element_text(size = 15,face="bold"))
   })
-  session$onSessionEnded(stopApp)
-}
-
-shinyApp(ui, server)
-```
-
-
-#histo
-```{r}
-ui <- dashboardPage(
-  dashboardHeader(title = "Bird"),
-  dashboardSidebar(disable = T),
-  dashboardBody(
-    fluidRow(
-      box(width = 3,
-    selectInput("x","select x variable",
-                choices = c("Accipitriformes","Anseriformes","Apodiformes","Apterygiformes","Bucerotiformes","Caprimulgiformes","Cariamiformes","Casuariiformes","Charadriiformes","Ciconiiformes","Coliiformes","Columbiformes","Coraciiformes","Cuculiformes","Eurypygiformes","Falconiformes","Galliformes","Gaviiformes","Gruiformes","Leptosomiformes","Mesitornithiformes","Musophagiformes","Opisthocomiformes","Otidiformes","Passeriformes","Pelecaniformes","Phaethontiformes","Phoenicopteriformes","Piciformes","Podicipediformes","Procellariiformes","Psittaciformes","Pteroclidiformes","Rheiformes","Sphenisciformes","Strigiformes","Struthioniformes","Suliformes","Tinamiformes","Trogoniformes"),
-                selected = "Accipitriformes"),
-    ),
-    box(title="Body Mass of Bird among Biological Orders",width = 7,
-    plotOutput("plot",width = "600px",height = "500px")
-    )
-  )
-  )
-)
-
-server <- function(input, output,session) {
-  output$plot<-renderPlot({
-    bird_new %>% 
-    filter(ioc_order==input$x)%>%
-  ggplot(aes_string(x="ioc_order",fill="ioc_order"))+
-  geom_histogram(alpha=0.8)+
-  theme_linedraw()+
-  theme(axis.title.x = element_text(size = rel(1.5)))+
-      labs(x="Order",y="Body Mass")
+  output$bird_new<-renderDataTable({
+    DT::datatable(bird_new,options = list(orderClasses=TRUE))
   })
-  session$onSessionEnded(stopApp)
-}
-```
-
-
-#checkboxplot
-```{r}
-ui <- fluidPage(
-  selectInput("x","select x variable",
-                choices = c("Accipitriformes","Anseriformes","Apodiformes","Apterygiformes","Bucerotiformes","Caprimulgiformes","Cariamiformes","Casuariiformes","Charadriiformes","Ciconiiformes","Coliiformes","Columbiformes","Coraciiformes","Cuculiformes","Eurypygiformes","Falconiformes","Galliformes","Gaviiformes","Gruiformes","Leptosomiformes","Mesitornithiformes","Musophagiformes","Opisthocomiformes","Otidiformes","Passeriformes","Pelecaniformes","Phaethontiformes","Phoenicopteriformes","Piciformes","Podicipediformes","Procellariiformes","Psittaciformes","Pteroclidiformes","Rheiformes","Sphenisciformes","Strigiformes","Struthioniformes","Suliformes","Tinamiformes","Trogoniformes"),
-                selected = "Accipitriformes"),
-  plotOutput("plot",width = "600px",height = "500px"),
-        checkboxGroupInput("icons",label = h3("choose icons:"),
-                           choices=list("diet"="diet_5cat","nocturnal"="nocturnal"),
-                           choiceValues = list("diet_5cat","nocturnal")),
-    
-    textOutput("txt")
-    
-)
-
-server <- function(input, output, session) {
-  output$plot<-renderPlot({
-  ggplot(data=bird_new,aes_string(x="ioc_order",y="body_mass_value",color="ioc_order"))+
-  geom_boxplot(alpha=0.8)+
-  theme_linedraw()+
-  theme(axis.title.x = element_text(size = rel(1.5)))+
-      labs(x="Order",y="Body Mass")
-  })
-  output$txt<-renderText({
-    icons<-paste(input$icons,collapse=",")
-    paste("You Choose",paste(input$diet,input$nocturnal))
-  })
-  session$onSessionEnded(stopApp)
-}
-
-shinyApp(ui, server)
-```
-```{r}
-bird_new%>%
-  count(diet_5cat)%>%
-  na.exclude()
-```
-
-```{r}
-bird_new%>%
+  output$diet_order<-renderPlot({
+    bird_new%>%
   na.exclude()%>%
-  rename(diet_type=diet_5cat)%>%
-  ggplot(aes(x=diet_type,fill=diet_type))+
-  geom_bar()+
+  rename(Diet_Type=diet_5cat)%>%
+  ggplot(aes(x=ioc_order,y=body_mass_value,fill=Diet_Type))+
+  geom_col()+
   coord_flip()+
-  labs(x="Diet Type",y=NULL,title = "Observations by Diet Type")+
   theme_linedraw()+
-  theme(axis.title = element_text(size = 10),plot.title = element_text(size=15,face = "bold") )
+  labs(x="Biological Order",y="Body Mass",title="Distributions of Diet Types among Biological Orders")+
+  theme(plot.title = element_text(size = 15,face = "bold"))
+  })
+  session$onSessionEnded(stopApp)
+}
+
+shinyApp(ui, server)
 ```
 
 
-```{r}
-names(bird_new)
-```
 
 
+#create new data set for second topic(using select only)
 ```{r}
 diet_bodymass<-bird_new%>%
   select(contains("diet"),body_mass_value)%>%
   select(-diet_5cat)
 ```
 
+#exporting data
 ```{r}
 write.csv(diet_bodymass, file = "diet_bodymass.csv", row.names = FALSE)
 ```
 
+#tidy the data into long form
 ```{r}
 diet_long<-diet_bodymass%>%
   pivot_longer(
@@ -351,7 +316,7 @@ diet_long<-diet_bodymass%>%
 ```
 
 
-
+#draw graphs using new data 
 ```{r}
 diet_long%>%
   ggplot(aes(x=population,y=body_mass_value,fill=diet_type))+
@@ -361,14 +326,9 @@ diet_long%>%
   labs(x="Population",y="Body Mass",title = "Observations by Body Mass and Diet Type ")+
   theme(plot.title = element_text(size = 15,face="bold"))
 ```
-
 the reason for that is maybe each order of bird only have a few diet,they don't eat all the things but just some particular types. so that many zeros exist for each diet type. Maybe relate to their living environment and available sources for them
-```{r}
-bird_new%>%
-  rename(Diet_Type=diet_5cat)
-```
 
-
+#rename the data column to make the side panel more clear
 ```{r}
 bird_new%>%
   na.exclude()%>%
@@ -381,14 +341,8 @@ bird_new%>%
   theme(plot.title = element_text(size = 15,face = "bold"))
 ```
 
-```{r}
-bird_new%>%
-  select(body_mass_value,diet_5cat)%>%
-  arrange(desc(body_mass_value))%>%
-  ggplot(aes(x=diet_5cat,y=body_mass_value))+
-  geom_point()
-```
 
+#try to analyze why there's so many 0 for population vs. migration graph
 ```{r}
 bird_strat<-bird_new%>%
   select(contains("for_strat"),body_mass_value)%>%
@@ -404,21 +358,11 @@ bird_strat
 bird_strat%>%
   count(migration_strategy)
 ```
-
-
-
-```{r}
-bird_strat%>%
-  ggplot(aes(x=migration_strategy,fill=migration_strategy))+
-  geom_bar()+
-  coord_flip()
-```
-
 Largest population number is 100,their migrational strategy is very settled. Almost half of them only has one migrational strategy. Surprisingly, very equally distributed. It shows that all the migrational strategies are common among those biological orders.
 
 
 
-
+#violin graph for population vs body mass filled with migrational strategy to see if larger body mass affect their strategy 
 ```{r}
 bird_new%>%
   select(contains("for_strat"),body_mass_value)%>%
@@ -434,27 +378,6 @@ bird_new%>%
   labs(x="Body Mass",y="Population")
 ```
 
-```{r}
-bird_new%>%
-  count(nocturnal)
-```
 
 
 
-```{r}
-bird_new %>%
-  na.exclude()%>%
-  filter(nocturnal=="1")%>%
-  ggplot(aes(x=diet_5cat, y=ioc_order, fill= nocturnal)) + 
-  geom_tile() +
-  scale_fill_gradient(low="yellow", high="red")+
-  theme_linedraw()
-```
-
-
-
-
-
-
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
