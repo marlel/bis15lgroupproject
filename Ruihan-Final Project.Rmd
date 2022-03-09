@@ -149,6 +149,7 @@ sort(unique(world_map$region))
 world_map%>%
   filter(region=="USA"|region=="Canada")
 ```
+#new data set 
 ```{r}
 northern_america1<-map_data("world",region = c("Canada","USA"))
 ```
@@ -159,7 +160,7 @@ northern_america1<-map_data("world",region = c("Canada","USA"))
 ```{r}
 ggplot(northern_america1,aes(x = long,y = lat,group = group,fill = region))+
   geom_polygon(colour="black")+
-  scale_fill_brewer(palette = "Spectral")+
+  scale_fill_brewer(palette = "Set2")+
   theme_minimal()
 ```
 ```{r}
@@ -169,18 +170,24 @@ library(DT)
 
 
 
+
+
+
+
+
 #final app
 ```{r}
-ui <- dashboardPage(skin = "black",
+ui <- dashboardPage(skin = "green",
   dashboardHeader(title = "Bird"),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Home", tabName = "home", icon = icon("home")),
-      menuItem("Map",tabName = "map",icon = icon("globe")),
+      menuItem("Map",tabName = "map",icon = icon("thumbtack")),
       menuItem("Table",tabName = "table",icon = icon("table")),
       menuItem("Body Mass", tabName = "bodymass", icon = icon("tree")),
       menuItem("Average Body Mass", tabName = "avg", icon = icon("leaf")),
-      menuItem("Diet",tabName = "diet",icon = icon("stats", lib = "glyphicon"))
+      menuItem("Diet",tabName = "diet",icon = icon("stats", lib = "glyphicon")),
+      menuItem("Migration",tabName = "migration",icon = icon("globe"))
     )),
   dashboardBody(
     tags$head(tags$style(HTML('
@@ -200,7 +207,8 @@ ui <- dashboardPage(skin = "black",
       tabItem(tabName = "map",
               plotOutput("region_map")),
       tabItem(tabName = "table",
-              dataTableOutput("bird_new")),
+                dataTableOutput("bird_new")
+              ),
       # First tab content
       tabItem(tabName = "bodymass",
         fluidRow(
@@ -227,7 +235,9 @@ ui <- dashboardPage(skin = "black",
                    plotOutput("diet_type")),
             column(width = 6,
                    plotOutput("diet_order")))
-           )
+           ),
+    tabItem(tabName = "migration",
+            plotOutput("migration_plot"))
     )
   ))
 
@@ -257,7 +267,7 @@ server <- function(input, output,session) {
   output$region_map<-renderPlot({
     ggplot(northern_america1,aes(x = long,y = lat,group = group,fill = region))+
   geom_polygon(colour="black")+
-  scale_fill_brewer(palette = "Spectral")+
+  scale_fill_brewer(palette = "Set2")+
   theme_minimal()
   })
   output$diet_type<-renderPlot({
@@ -282,6 +292,21 @@ server <- function(input, output,session) {
   theme_linedraw()+
   labs(x="Biological Order",y="Body Mass",title="Distributions of Diet Types among Biological Orders")+
   theme(plot.title = element_text(size = 15,face = "bold"))
+  })
+  output$migration_plot<-renderPlot({
+    bird_new%>%
+  select(contains("for_strat"),body_mass_value)%>%
+  pivot_longer(cols = starts_with("for_strat_"),
+               names_to = ("migration_strategy"),
+               names_prefix = "for_start_",
+               values_to = "population",
+               values_drop_na = TRUE)%>%
+  ggplot(aes(x=body_mass_value,y=population,fill=migration_strategy))+
+  geom_boxplot(alpha=0.3)+
+  geom_violin(alpha=0.6)+
+  coord_flip()+
+  labs(x="Body Mass",y="Population",title="Observation of Body Mass by Migration Strategy")+
+  theme_linedraw()
   })
   session$onSessionEnded(stopApp)
 }
@@ -341,6 +366,21 @@ bird_new%>%
   theme(plot.title = element_text(size = 15,face = "bold"))
 ```
 
+```{r}
+bird_new%>%
+  na.exclude()%>%
+  rename(Diet_Type=diet_5cat)%>%
+  ggplot(aes(x=Diet_Type,y=body_mass_value,color=Diet_Type))+
+  geom_point()+
+  coord_flip()+
+  theme_linedraw()+
+  labs(x="Biological Order",y="Body Mass",title="Distributions of Diet Types among Biological Orders")+
+  theme(plot.title = element_text(size = 15,face = "bold"))
+```
+its' geom col, so the body mass has been added up, for different species, and we only got 1 body mass data for struiformes, so even it has the largest body mass, it's not the largest on the graph.
+
+
+
 
 #try to analyze why there's so many 0 for population vs. migration graph
 ```{r}
@@ -375,7 +415,8 @@ bird_new%>%
   geom_boxplot(alpha=0.3)+
   geom_violin(alpha=0.6)+
   coord_flip()+
-  labs(x="Body Mass",y="Population")
+  labs(x="Body Mass",y="Population",title="Observation of Body Mass by Migration Strategy")+
+  theme_linedraw()
 ```
 
 
