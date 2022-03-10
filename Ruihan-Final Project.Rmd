@@ -231,10 +231,12 @@ ui <- dashboardPage(skin = "green",
       ),
     tabItem(tabName = "diet",
           fluidRow(
-            column(width=6,
-                   plotOutput("diet_type")),
-            column(width = 6,
-                   plotOutput("diet_order")))
+            box(width= 4,
+                   plotOutput("diet_type",width = "400px",height = "400px")),
+            box(width=4,
+                   plotOutput("diet_order",width = "400px",height = "400px")),
+            box(width=4,
+                   plotOutput("diet_order2",width = "400px",height = "400px")))
            ),
     tabItem(tabName = "migration",
             plotOutput("migration_plot"))
@@ -290,8 +292,19 @@ server <- function(input, output,session) {
   geom_col()+
   coord_flip()+
   theme_linedraw()+
-  labs(x="Biological Order",y="Body Mass",title="Distributions of Diet Types among Biological Orders")+
-  theme(plot.title = element_text(size = 15,face = "bold"))
+  labs(x="Biological Order",y="Body Mass",title="Distributions of Diet Types among Orders")+
+  theme(plot.title = element_text(size = 15,face = "bold",hjust = 0.1))
+  })
+  output$diet_order2<-renderPlot({
+    bird_new%>%
+  na.exclude()%>%
+  rename(Diet_Type=diet_5cat)%>%
+  ggplot(aes(x=ioc_order,y=body_mass_value,fill=Diet_Type))+
+  geom_col(position = "dodge")+
+  coord_flip()+
+  theme_linedraw()+
+  labs(x="Biological Order",y="Body Mass",title="Distributions of Diet Types among Orders")+
+  theme(plot.title = element_text(size = 15,face = "bold",hjust = 0.1))
   })
   output$migration_plot<-renderPlot({
     bird_new%>%
@@ -358,18 +371,6 @@ the reason for that is maybe each order of bird only have a few diet,they don't 
 bird_new%>%
   na.exclude()%>%
   rename(Diet_Type=diet_5cat)%>%
-  ggplot(aes(x=ioc_order,y=body_mass_value,fill=Diet_Type))+
-  geom_col()+
-  coord_flip()+
-  theme_linedraw()+
-  labs(x="Biological Order",y="Body Mass",title="Distributions of Diet Types among Biological Orders")+
-  theme(plot.title = element_text(size = 15,face = "bold"))
-```
-
-```{r}
-bird_new%>%
-  na.exclude()%>%
-  rename(Diet_Type=diet_5cat)%>%
   ggplot(aes(x=Diet_Type,y=body_mass_value,color=Diet_Type))+
   geom_point()+
   coord_flip()+
@@ -378,6 +379,19 @@ bird_new%>%
   theme(plot.title = element_text(size = 15,face = "bold"))
 ```
 its' geom col, so the body mass has been added up, for different species, and we only got 1 body mass data for struiformes, so even it has the largest body mass, it's not the largest on the graph.
+
+#New graph with position="dodge" to make the graph representation clear
+```{r}
+bird_new%>%
+  na.exclude()%>%
+  rename(Diet_Type=diet_5cat)%>%
+  ggplot(aes(x=ioc_order,y=body_mass_value,fill=Diet_Type))+
+  geom_col(position = "dodge")+
+  coord_flip()+
+  theme_linedraw()+
+  labs(x="Biological Order",y="Body Mass",title="Distributions of Diet Types among Biological Orders")+
+  theme(plot.title = element_text(size = 15,face = "bold"))
+```
 
 
 
