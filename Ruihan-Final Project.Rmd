@@ -29,7 +29,7 @@ library(shinydashboard)
 
 #load the data set
 ```{r}
-bird<-read_csv(here("BirdFuncDat.csv"))
+bird<-read_csv("data/BirdFuncDat.csv")
 ```
 
 
@@ -84,7 +84,7 @@ write.csv(bird_strat,file ="bird_strat.csv",row.names = FALSE)
 
 #load the new data
 ```{r}
-bird_new<-read_csv(here("bird_tidy.csv"))
+bird_new<-read_csv("data/bird_tidy.csv")
 ```
 
 
@@ -202,7 +202,7 @@ ui <- dashboardPage(skin = "green",
       tabItems(
       #home tab
       tabItem(tabName = "home",
-              includeMarkdown("home.md")),
+              includeMarkdown("app/home.md")),
       #map
       tabItem(tabName = "map",
               plotOutput("region_map")),
