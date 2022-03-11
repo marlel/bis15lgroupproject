@@ -1,0 +1,101 @@
+---
+title: "Marle Final Project"
+author: "Marle Lamountry"
+date: "3/8/2022"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r cars}
+library(here)
+library(readr)
+library(tidyverse)
+library(janitor)
+library(shiny)
+library(shinydashboard)
+```
+```{r}
+getwd()
+```
+
+
+```{r}
+bird<-read_csv(here("BirdFuncDat.csv"))
+```
+```{r}
+glimpse(bird)
+```
+```{r}
+bird_new<-read_csv(here("bird_tidy.csv"))
+```
+
+#which diet types are nocturnal
+```{r}
+bird_new%>%
+  na.exclude()%>%
+  filter(nocturnal=="1")%>%
+  ggplot(aes(x=ioc_order,y=diet_5cat,fill=nocturnal))+
+  geom_tile()+
+  scale_fill_gradient(low = "#fbb4ae")+
+  geom_path(size=1)+
+  theme_linedraw()+
+  theme(axis.title.x = element_text(size = rel(1)))+coord_flip()+
+  labs(title = 'Each Orders Diet and if They are Nocturnal',
+       x="Order", y="Diet")
+ 
+```
+#which diets have which migratory strategies
+```{r}
+diet_migration<-bird_new%>%
+  select(diet_5cat,contains("for_strat_"))
+```
+```{r}
+migration_long1<-diet_migration%>%
+  pivot_longer(names_to = "Migration",
+               names_prefix="for_strat_",
+               values_to="Population",
+               'for_strat_watbelowsurf':'for_strat_aerial')
+```
+#Amount of each Migration Strategy for each Diet Type
+```{r}
+migration_long1%>%
+  na.exclude()%>%
+  ggplot(aes(x=Population,y=Migration,fill=diet_5cat))+
+  geom_col()+
+  geom_path()+
+  facet_wrap(~diet_5cat)+
+  theme_linedraw()+
+  theme(axis.line.x = element_line(size = rel(1)))+
+    labs(title = "Pop of Migration Strategies with Diet Types",
+       y="Migration", x= "Population")
+```
+#Migration strats for Nocturnal Species
+```{r}
+nocturnal_species<-bird_new%>%
+  select(ioc_order,nocturnal,contains("for_strat_"))%>%
+  filter(nocturnal=="1")
+
+```
+```{r}
+nocturnal_species_long<-nocturnal_species%>%
+  pivot_longer(names_to = "Migration",
+               names_prefix="for_strat_",
+               values_to="Population",
+               'for_strat_watbelowsurf':'for_strat_aerial')
+```
+```{r}
+nocturnal_species_long%>%
+  ggplot(aes(x=Population,y=Migration,fill=nocturnal))+
+  geom_col()+
+  facet_wrap(~ioc_order)+
+  theme_linedraw()+
+  theme(axis.line.x = element_line(size = rel(1)))+
+  labs(title = "Migration Strategies of Each Nocturnal Order")
+```
+
+
